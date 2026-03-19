@@ -82,6 +82,7 @@ contract ImaraTest is Test {
         assertEq(task.participant, participant);
         assertEq(uint256(task.status), uint256(Imara.Status.InProgress));
         assertEq(address(imara).balance, STAKE_REQUIRED);
+        assertEq(imara.pendingStakeTotal(), STAKE_REQUIRED);
     }
 
     function testStakeAndJoinRevertsForCreator() public {
@@ -177,6 +178,7 @@ contract ImaraTest is Test {
         assertEq(imara.reputation(participant), 1);
         assertEq(participant.balance, participantBalanceBeforeJoin);
         assertEq(address(imara).balance, 0);
+        assertEq(imara.pendingStakeTotal(), 0);
     }
 
     function testVerifyAndResolveRejectKeepsStakeInContract() public {
@@ -191,6 +193,9 @@ contract ImaraTest is Test {
         assertEq(imara.reputation(participant), 0);
         assertEq(participant.balance, 9 ether);
         assertEq(address(imara).balance, STAKE_REQUIRED);
+        assertEq(imara.pendingStakeTotal(), 0);
+        assertEq(imara.totalSlashed(), STAKE_REQUIRED);
+        assertEq(imara.availableSlashedFunds(), STAKE_REQUIRED);
     }
 
     function testVerifyAndResolveRevertsForNonCreator() public {
@@ -255,6 +260,78 @@ contract ImaraTest is Test {
         vm.prank(creator);
         vm.expectRevert(bytes("Task not open"));
         imara.reclaimExpiredTask(taskId);
+    }
+
+    function testOwnerCanPauseAndUnpause() public {
+        imara.pause();
+        assertTrue(imara.paused());
+
+        imara.unpause();
+        assertTrue(!imara.paused());
+    }
+
+    function testPauseBlocksCreateTask() public {
+        imara.pause();
+
+        vm.prank(creator);
+        vm.expectRevert(bytes("Pausable: paused"));
+        imara.createTask(
+            "Ship hackathon demo",
+            "Build the first task flow on Polkadot Hub EVM",
+            STAKE_REQUIRED,
+            block.timestamp + DEFAULT_DEADLINE_OFFSET
+        );
+    }
+
+    function testPauseBlocksStakeAndJoin() public {
+        uint256 taskId = createTask();
+
+        imara.pause();
+
+        vm.prank(participant);
+        vm.expectRevert(bytes("Pausable: paused"));
+        imara.stakeAndJoin{value: STAKE_REQUIRED}(taskId);
+    }
+
+    function testPauseRevertsForNonOwner() public {
+        vm.prank(creator);
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        imara.pause();
+    }
+
+    function testWithdrawSlashedTransfersOnlyAvailableSlashedFunds() public {
+        uint256 taskId = createTaskReadyForReview("https://github.com/imara/proof/8");
+        uint256 recipientBalanceBefore = otherUser.balance;
+
+        vm.prank(creator);
+        imara.verifyAndResolve(taskId, false);
+
+        imara.withdrawSlashed(payable(otherUser), STAKE_REQUIRED);
+
+        assertEq(otherUser.balance, recipientBalanceBefore + STAKE_REQUIRED);
+        assertEq(imara.availableSlashedFunds(), 0);
+        assertEq(imara.totalWithdrawn(), STAKE_REQUIRED);
+        assertEq(address(imara).balance, 0);
+    }
+
+    function testWithdrawSlashedRevertsForNonOwner() public {
+        uint256 taskId = createTaskReadyForReview("https://github.com/imara/proof/9");
+
+        vm.prank(creator);
+        imara.verifyAndResolve(taskId, false);
+
+        vm.prank(creator);
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        imara.withdrawSlashed(payable(creator), STAKE_REQUIRED);
+    }
+
+    function testWithdrawSlashedRevertsWhenStakeIsStillPending() public {
+        createJoinedTask();
+
+        assertEq(imara.availableSlashedFunds(), 0);
+
+        vm.expectRevert(bytes("Amount exceeds available slashed funds"));
+        imara.withdrawSlashed(payable(otherUser), 1);
     }
 
     function testGetAllTasksReturnsTasksInCreationOrder() public {

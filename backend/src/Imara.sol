@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-contract Imara {
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+contract Imara is Ownable, Pausable, ReentrancyGuard {
     enum Status {
         Open,
         InProgress,
@@ -23,6 +27,9 @@ contract Imara {
     }
 
     uint256 public taskCount;
+    uint256 public pendingStakeTotal;
+    uint256 public totalSlashed;
+    uint256 public totalWithdrawn;
 
     mapping(uint256 => Task) private tasks;
     mapping(address => uint256) public reputation;
@@ -49,6 +56,7 @@ contract Imara {
         bool approved,
         uint256 payout
     );
+    event SlashedFundsWithdrawn(address indexed recipient, uint256 amount);
 
     modifier taskExists(uint256 taskId) {
         require(taskId < taskCount, "Task does not exist");
@@ -65,7 +73,7 @@ contract Imara {
         string calldata description,
         uint256 stakeRequired,
         uint256 deadline
-    ) external returns (uint256) {
+    ) external whenNotPaused returns (uint256) {
         require(bytes(title).length > 0, "Title required");
         require(bytes(description).length > 0, "Description required");
         require(stakeRequired > 0, "Stake required");
@@ -91,7 +99,9 @@ contract Imara {
         return id;
     }
 
-    function stakeAndJoin(uint256 taskId) external payable taskExists(taskId) {
+    function stakeAndJoin(
+        uint256 taskId
+    ) external payable taskExists(taskId) whenNotPaused {
         Task storage task = tasks[taskId];
 
         require(task.status == Status.Open, "Task not open");
@@ -102,6 +112,7 @@ contract Imara {
 
         task.participant = msg.sender;
         task.status = Status.InProgress;
+        pendingStakeTotal += msg.value;
 
         emit ParticipantJoined(taskId, msg.sender, msg.value);
     }
@@ -109,7 +120,7 @@ contract Imara {
     function submitWork(
         uint256 taskId,
         string calldata proofLink
-    ) external taskExists(taskId) {
+    ) external taskExists(taskId) whenNotPaused {
         Task storage task = tasks[taskId];
 
         require(task.participant == msg.sender, "Not task participant");
@@ -125,7 +136,7 @@ contract Imara {
     function verifyAndResolve(
         uint256 taskId,
         bool approved
-    ) external taskExists(taskId) onlyCreator(taskId) {
+    ) external taskExists(taskId) onlyCreator(taskId) whenNotPaused nonReentrant {
         Task storage task = tasks[taskId];
 
         require(!task.resolved, "Already resolved");
@@ -134,6 +145,7 @@ contract Imara {
         require(bytes(task.proofLink).length > 0, "Proof not submitted");
 
         task.resolved = true;
+        pendingStakeTotal -= task.stakeRequired;
 
         if (approved) {
             uint256 payout = task.stakeRequired;
@@ -148,12 +160,13 @@ contract Imara {
         }
 
         task.status = Status.Failed;
+        totalSlashed += task.stakeRequired;
         emit TaskResolved(taskId, task.participant, false, 0);
     }
 
     function reclaimExpiredTask(
         uint256 taskId
-    ) external taskExists(taskId) onlyCreator(taskId) {
+    ) external taskExists(taskId) onlyCreator(taskId) whenNotPaused {
         Task storage task = tasks[taskId];
 
         require(task.status == Status.Open, "Task not open");
@@ -162,6 +175,37 @@ contract Imara {
 
         task.resolved = true;
         task.status = Status.Failed;
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    function availableSlashedFunds() public view returns (uint256) {
+        return address(this).balance - pendingStakeTotal;
+    }
+
+    function withdrawSlashed(
+        address payable recipient,
+        uint256 amount
+    ) external onlyOwner nonReentrant {
+        require(recipient != address(0), "Recipient required");
+        require(amount > 0, "Amount required");
+        require(
+            amount <= availableSlashedFunds(),
+            "Amount exceeds available slashed funds"
+        );
+
+        totalWithdrawn += amount;
+
+        (bool success, ) = recipient.call{value: amount}("");
+        require(success, "Withdraw failed");
+
+        emit SlashedFundsWithdrawn(recipient, amount);
     }
 
     function getTask(
