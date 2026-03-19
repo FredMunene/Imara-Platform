@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Home from './Home';
 import Auth from './Auth';
+import { useNavigate } from 'react-router-dom';
 // import { Globe } from 'lucide-react';
 import {
   Brain,
@@ -41,7 +42,7 @@ const [isAuthenticated, setIsAuthenticated] = useState(false);
 const [activePhase, setActivePhase] = useState(1);
 const [showAuth, setShowAuth] = useState(false); // New state variable
 const [showHome, setShowHome] = useState(false); // New state for Home page
-
+const navigate = useNavigate();
 
 const address = useAddress();
 const disconnect = useDisconnect();
@@ -88,6 +89,12 @@ return (
             <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a>
             <a href="#benefits" className="text-gray-300 hover:text-white transition-colors">Benefits</a>
             <button
+              onClick={() => navigate('/tasks')}
+              className="text-gray-300 hover:text-white transition-colors"
+            >
+              Tasks
+            </button>
+            <button
               onClick={() => setShowAuth(true)} // Added onClick handler
               className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 px-4 py-2 rounded-lg transition-all">
               Sign In
@@ -108,9 +115,12 @@ return (
             className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2">
               Launch Your Idea <ChevronRight className="w-5 h-5" />
             </button>
-            {/* <button className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all hover:bg-white/20">
-              Explore Projects
-            </button> */}
+            <button
+              onClick={() => navigate('/tasks')}
+              className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all hover:bg-white/20"
+            >
+              Open Tasks
+            </button>
           </div>
         </div>
 

@@ -36,6 +36,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import CreateIdea from './CreateIdea';
 import { displayIdeas } from '../utils/SupabaseClient';
 import { use } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const trendingProjects = [
   {
@@ -93,7 +94,7 @@ function Home({ handleSignOut }) {
 
 
   const allProjects = displayIdeas();
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
   const address = useAddress();
   const email = localStorage.getItem("userEmail");
   const [userEmail, setUserEmail] = useState(email);
@@ -228,9 +229,15 @@ function Home({ handleSignOut }) {
                   <span className="text-sm font-medium text-purple-400">Create an Idea</span>
                 
                 </button>
-                
-           
               </div>
+
+              <button
+                onClick={() => navigate('/tasks')}
+                className="flex items-center gap-2 bg-emerald-500/15 px-4 py-2 rounded-lg hover:bg-emerald-500/25 transition-all duration-200"
+              >
+                <Briefcase className="w-4 h-4 text-emerald-300" />
+                <span className="text-sm font-medium text-emerald-300">Protocol Tasks</span>
+              </button>
 
               <div className="relative">
                 <button
