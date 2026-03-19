@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1",
+    "title": "Decentralized Task Marketplace",
+    "problemStatement": "Contributors ghost on commitments with no consequences.",
+    "projectDescription": "A trustless coordination layer where participants stake tokens to join tasks and are rewarded or slashed based on delivery.",
+    "solution": "Smart contract-enforced commitment using Imara Protocol on Polkadot Hub EVM.",
+    "image": "",
+    "resources": [],
+    "needsprojectmanager": false,
+    "timeline": "4 weeks",
+    "uid": "demo"
+  },
+  {
+    "id": "2",
+    "title": "On-chain Reputation System",
+    "problemStatement": "No portable reputation across Web3 projects.",
+    "projectDescription": "Build a reputation NFT that reflects completed tasks, verified contributions, and staking history.",
+    "solution": "Soulbound token minted on successful task completion via Imara Protocol.",
+    "image": "",
+    "resources": [],
+    "needsprojectmanager": false,
+    "timeline": "3 weeks",
+    "uid": "demo"
+  }
+]

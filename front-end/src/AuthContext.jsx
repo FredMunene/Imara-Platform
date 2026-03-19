@@ -1,29 +1,23 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import  {supabase}  from "./utils/SupabaseClient";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
+    // Use wallet address from MetaMask as the user identity
+    const syncWallet = async () => {
+      if (window.ethereum) {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts[0]) setUser({ id: accounts[0], address: accounts[0] });
+        window.ethereum.on('accountsChanged', (accs) => {
+          setUser(accs[0] ? { id: accs[0], address: accs[0] } : null);
+        });
+      }
     };
-
-    fetchUser();
-
-    // Listen for authentication changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+    syncWallet();
   }, []);
 
   return (

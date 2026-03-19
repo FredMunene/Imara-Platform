@@ -62,23 +62,22 @@ export function Auth({ setShowAuth, setShowHome }) {
   const signUpNewUser = async () => {
     setLoading(true);
     setErrorMsg('');
-    const { user, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: 'https://imara-platform.onrender.com',
-      }
-    });
-    setLoading(false);
-
-    if (error) {
-      setErrorMsg(error.message);
-    } else {
-      setErrorMsg('Please check your email to confirm your account.');
-      setIsLogin(true);
-      console.log('User created successfully:', user);
+    if (!email || !password) {
+      setErrorMsg('Email and password are required.');
+      setLoading(false);
+      return;
     }
-
+    const users = JSON.parse(localStorage.getItem('imara_users') || '{}');
+    if (users[email]) {
+      setErrorMsg('Account already exists. Please sign in.');
+      setLoading(false);
+      return;
+    }
+    users[email] = { email, password };
+    localStorage.setItem('imara_users', JSON.stringify(users));
+    setLoading(false);
+    setErrorMsg('Account created. Please sign in.');
+    setIsLogin(true);
   }
 
   // if (errorMsg) {
@@ -91,27 +90,16 @@ export function Auth({ setShowAuth, setShowHome }) {
   const signInWithEmail = async () => {
     setLoading(true);
     setErrorMsg('');
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    const users = JSON.parse(localStorage.getItem('imara_users') || '{}');
+    const found = users[email];
     setLoading(false);
 
-    if (error) {
-    
-      setErrorMsg('User not found. Please sign up.');      
-      console.log('Error signing in:', error.message)
-      
+    if (!found || found.password !== password) {
+      setErrorMsg('User not found. Please sign up.');
     } else {
-      console.log('User signed in successfully:', data);
-
-          // Fetch user details
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-
-      localStorage.setItem("userEmail", userData.user.email);
-
-      setShowAuth(false);  // Hide the Auth page
-      setShowHome(true);    // Show the Home page
+      localStorage.setItem('userEmail', email);
+      setShowAuth(false);
+      setShowHome(true);
     }
   }
 

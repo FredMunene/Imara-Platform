@@ -1,105 +1,60 @@
-import { createClient } from '@supabase/supabase-js';
-import React, { useEffect, useState } from 'react';
-// import { useAuth } from "../AuthContext";
+import seedIdeas from '../data/ideas.json';
 
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-export const supabase = createClient(supabaseUrl, supabaseKey);
+const STORAGE_KEY = 'imara_ideas';
 
-// console.log('Supabase URL:', supabaseUrl);
-// console.log('Supabase Key:', supabaseKey);
+function loadIdeas() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch (_) {}
+  // seed on first load
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(seedIdeas));
+  return seedIdeas;
+}
 
+function saveIdeas(ideas) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
+}
+
+// stub — no Supabase client needed
+export const supabase = null;
 
 export const addIdea = async (formData, user) => {
+  try {
+    const ideas = loadIdeas();
+    const newIdea = {
+      id: String(Date.now()),
+      title: formData.title,
+      problemStatement: formData.problemStatement,
+      projectDescription: formData.projectDescription,
+      solution: formData.solution,
+      image: formData.image || '',
+      resources: formData.resources ? JSON.stringify(formData.resources) : null,
+      needsprojectmanager: formData.needsProjectManager || false,
+      timeline: formData.timeline,
+      uid: user?.id || user?.address || 'anonymous',
+    };
+    ideas.push(newIdea);
+    saveIdeas(ideas);
+    return newIdea;
+  } catch (err) {
+    console.error('addIdea error:', err);
+    return null;
+  }
+};
 
-    try {
-    
-        // Insert idea along with the authenticated user's UID
-        const { title, solution, projectDescription, problemStatement,image, resources, timeline } = formData;
-        const needsprojectmanager = formData.needsProjectManager; 
-
-        // Ensure resources is formatted correctly
-        const formattedResources = resources ? JSON.stringify(resources) : null;
-
-        // Insert Data into Database
-        const { data, error } = await supabase.
-        from('ideas')
-        .insert([{
-            title, 
-            problemStatement, 
-            projectDescription, 
-            solution,
-            image,
-            resources : formattedResources,
-            needsprojectmanager,
-            timeline, 
-            uid: user.id}]);
-    
-        if (error) {
-          console.error("Insert error:", error.message, error.details, error.hint);
-          return null;
-        }
-    
-        return data;
-      } catch (err) {
-        console.error("Unexpected error:", err);
-        return null;
-      }
-
-}
-
-export const uploadImageToSupabase = async (image, user) => {
-    // const user = supabase.auth.getUser(); // Check if user is authenticated
-    // console.log("Uploading Image:", image);
-    // console.log("Current user in uploadImage:", user);
-
-    // upload image to storage
-
-    const fileExt = image.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    // Upload image
-    const { data: uploadData, error: uploadError } = await supabase
-    .storage
-    .from('ideaImages')
-    .upload(filePath, image);
-
-    if (uploadError) {
-        console.error("Error uploading image:", uploadError);
-        return null;
-    }
-
-    // Fetch public URL correctly
-    const { data: publicUrlData, error: urlError } = supabase
-        .storage
-        .from('ideaImages')
-        .getPublicUrl(filePath);
-
-    if (urlError) {
-        console.error("Error retrieving image URL:", urlError);
-        return null;
-    }
-
-    console.log("Public URL Response:", publicUrlData);
-   
-
-    return publicUrlData.publicUrl;
-
-}
+export const uploadImageToSupabase = async (image) => {
+  // Convert to base64 data URL for local storage
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(image);
+  });
+};
 
 export const displayIdeas = async () => {
-    try {
-        const { data, error } = await supabase.from('ideas').select('*');
-        if (error) {
-            console.error("Error fetching ideas:", error);
-            return [];
-        }
-        return data; // Return the fetched ideas
-    } catch (err) {
-        console.error("Unexpected error:", err);
-        return [];
-    }
+  return loadIdeas();
 };
 
 
