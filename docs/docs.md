@@ -150,15 +150,15 @@ For MVP the task creator acts as verifier.
 
 **Decision:** Use raw `ethers.js` with `window.ethereum` (MetaMask) for MVP contract calls — same pattern as existing `utils/stake.jsx`. Configure MetaMask to add Polkadot Hub EVM as a custom network.
 
-**Polkadot Hub EVM Network Config (to confirm at deploy):**
+**Polkadot Hub TestNet Network Config:**
 ```
-Network Name: Polkadot Hub
-RPC URL: https://westend-asset-hub-eth-rpc.polkadot.io  (Westend testnet)
-Chain ID: 420420421
-Currency Symbol: WND
-Block Explorer: https://blockscout-westend-asset-hub.parity-chains.parity.io
+Network Name: Polkadot Hub TestNet
+RPC URL: https://eth-rpc-testnet.polkadot.io/
+Chain ID: 420420417
+Currency Symbol: PAS
+Block Explorer: https://blockscout-testnet.polkadot.io/
 ```
-> Cross-check chain ID at deploy time — Polkadot Asset Hub EVM may use a different ID on mainnet vs testnet.
+> This matches the network config used in `front-end/src/utils/imara.jsx`.
 
 **Consequences:**
 - Minimal new dependencies.
@@ -471,11 +471,11 @@ Creator sees proof link, clicks Approve or Reject
 | Resource | URL |
 |----------|-----|
 | Polkadot Asset Hub EVM docs | https://docs.substrate.io/reference/frame-pallets/#evm |
-| Westend Asset Hub RPC | https://westend-asset-hub-eth-rpc.polkadot.io |
-| Westend Blockscout explorer | https://blockscout-westend-asset-hub.parity-chains.parity.io |
+| Polkadot Hub TestNet RPC | https://eth-rpc-testnet.polkadot.io/ |
+| Polkadot Hub TestNet Blockscout explorer | https://blockscout-testnet.polkadot.io/ |
 | Polkadot EVM tutorial | https://docs.moonbeam.network (compatible patterns) |
-| Add Westend to MetaMask | Chain ID: 420420421, Symbol: WND |
-| Faucet for WND (testnet) | https://faucet.polkadot.io (select Westend Asset Hub) |
+| Add Polkadot Hub TestNet to MetaMask | Chain ID: 420420417, Symbol: PAS |
+| Faucet for PAS (testnet) | https://faucet.polkadot.io (select Polkadot Hub TestNet / Paseo EVM) |
 
 ### 5.2 Smart Contract Development
 
@@ -510,7 +510,7 @@ Creator sees proof link, clicks Approve or Reject
 |----------|---------|---------|
 | TokenFactory.sol | `0x7E81E4697863cAB4FE4C0d820baCbc9e9843e3dD` | Current EVM chain |
 | Staking.sol | `0x65225a4E25977A00E766dF66269774e5f24b2d55` | Current EVM chain |
-| Imara.sol | TBD — deploy to Polkadot Hub EVM | Westend Asset Hub |
+| Imara.sol | `0x1314382ac047A386711DD062d1ac1aA8b83f2e0B` | Polkadot Hub TestNet |
 
 ---
 
@@ -521,8 +521,8 @@ Creator sees proof link, clicks Approve or Reject
                Run: forge build
                Run: forge test (basic happy path test)
 
-[0:30 - 1:00]  Deploy to Westend Asset Hub EVM
-               Run: forge create --rpc-url https://westend-asset-hub-eth-rpc.polkadot.io
+[0:30 - 1:00]  Deploy to Polkadot Hub TestNet EVM
+               Run: forge create --rpc-url https://eth-rpc-testnet.polkadot.io/
                Copy ABI to front-end/src/utils/imaraAbi.json
                Set VITE_IMARA_CONTRACT_ADDRESS in .env.local
 
@@ -552,8 +552,8 @@ Creator sees proof link, clicks Approve or Reject
 - [x] Added `front-end/src/components/TaskDetail.jsx`.
 - [x] Wired `/tasks`, `/tasks/create`, and `/tasks/:id` in `front-end/src/App.jsx`.
 - [x] Verified the frontend compiles with `npm run build`.
-- [ ] Deploy `Imara.sol` to Westend Asset Hub and set the final `VITE_IMARA_CONTRACT_ADDRESS`.
-- [ ] Run the full wallet-to-wallet demo flow on the deployed contract.
+- [x] Deploy `Imara.sol` to Polkadot Hub TestNet and set the final `VITE_IMARA_CONTRACT_ADDRESS`.
+- [x] Run the full wallet-to-wallet demo flow on the deployed contract.
 
 ---
 
@@ -561,7 +561,7 @@ Creator sees proof link, clicks Approve or Reject
 
 | Risk | Mitigation |
 |------|------------|
-| Polkadot Hub EVM chain not accessible / RPC down | Have Sepolia fallback: same contract, different RPC |
+| Polkadot Hub TestNet chain not accessible / RPC down | Have Sepolia fallback: same contract, different RPC |
 | MetaMask not detecting custom chain | Pre-add network via `wallet_addEthereumChain` in `utils/imara.jsx` |
 | `getAllTasks()` gas limit for large arrays | Cap at 100 tasks for demo; use event indexing in production |
 | Slash funds stuck in contract | Add `withdrawSlashed()` owned by deployer for demo cleanup |

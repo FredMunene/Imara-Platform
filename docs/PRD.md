@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Date:** 2026-03-19
 **Track:** Polkadot Hackathon — Track 1: EVM Smart Contract
-**Target Chain:** Polkadot Hub EVM (Westend Asset Hub testnet)
+**Target Chain:** Polkadot Hub TestNet (EVM)
 
 ---
 
@@ -24,15 +24,15 @@ The existing Imara Platform already supports ideation, team formation, and proje
 
 ### 1.3 Success Criteria for Hackathon Demo
 
-> Current status on 2026-03-19: local implementation and verification are complete in-repo; live chain deployment and wallet-to-wallet demo validation are still pending.
+> Current status on 2026-03-19: the contract is deployed at `0x1314382ac047A386711DD062d1ac1aA8b83f2e0B`, the frontend is wired to that address, and the wallet-to-wallet demo flow has been completed on Polkadot Hub TestNet.
 
-- [ ] `Imara.sol` deployed and verified on Westend Asset Hub
-- [ ] Task can be created via the frontend UI
-- [ ] A second wallet can stake and join that task
-- [ ] The participant submits a proof link
-- [ ] The creator approves → ETH is returned to participant
-- [ ] The creator rejects → ETH remains slashed in contract
-- [ ] All state changes are visible in the frontend and on the block explorer
+- [x] `Imara.sol` deployed and verified on Polkadot Hub TestNet
+- [x] Task can be created via the frontend UI
+- [x] A second wallet can stake and join that task
+- [x] The participant submits a proof link
+- [x] The creator approves → ETH is returned to participant
+- [x] The creator rejects → ETH remains slashed in contract
+- [x] All state changes are visible in the frontend and on the block explorer
 
 ---
 
@@ -103,7 +103,7 @@ The existing Imara Platform already supports ideation, team formation, and proje
 |----|------|-------------|
 | FR-13 | `App.jsx` routes | Add: `/tasks` → TaskList, `/tasks/create` → CreateTask, `/tasks/:id` → TaskDetail |
 | FR-14 | `.env.local` | Add `VITE_IMARA_CONTRACT_ADDRESS=<deployed_address>` after deploy |
-| FR-15 | Network config | Polkadot Hub EVM: RPC `https://westend-asset-hub-eth-rpc.polkadot.io`, Chain ID `420420421`, Symbol `WND` |
+| FR-15 | Network config | Polkadot Hub TestNet: RPC `https://eth-rpc-testnet.polkadot.io/`, Chain ID `420420417`, Symbol `PAS` |
 
 ---
 
@@ -116,7 +116,7 @@ The existing Imara Platform already supports ideation, team formation, and proje
 | NFR-03 | Dev environment | `npm run dev` starts frontend with no additional setup beyond `.env.local` |
 | NFR-04 | Security (MVP) | No reentrancy risk: ETH sent to one address at end of function. Note: add `ReentrancyGuard` pre-production. |
 | NFR-05 | UX | All on-chain actions show a loading/pending state. Errors surface as readable messages (not raw revert strings). |
-| NFR-06 | Demo-readiness | Contract verified on Westend blockscout. Full flow completable in under 2 minutes for live demo. |
+| NFR-06 | Demo-readiness | Contract verified on Polkadot Hub TestNet Blockscout. Full flow completable in under 2 minutes for live demo. |
 
 ---
 
@@ -142,14 +142,14 @@ The existing Imara Platform already supports ideation, team formation, and proje
 - [x] `backend/src/Imara.sol` implemented for task creation, join, submission, resolution, and expired-task reclaim.
 - [x] `backend/test/Imara.t.sol` added and `forge test` passes locally.
 - [x] `backend/script/DeployImara.s.sol` added.
-- [ ] `Imara.sol` deployed to Westend Asset Hub and verified on Blockscout.
+- [x] `Imara.sol` deployed to Polkadot Hub TestNet at `0x1314382ac047A386711DD062d1ac1aA8b83f2e0B` and verified on Blockscout.
 - [x] ABI exported to `front-end/src/utils/imaraAbi.json`.
 - [x] `front-end/src/utils/imara.jsx` added with read/write helpers and Polkadot Hub network setup.
 - [x] Routes added in `front-end/src/App.jsx` for `/tasks`, `/tasks/create`, and `/tasks/:id`.
 - [x] `TaskList.jsx`, `CreateTask.jsx`, and `TaskDetail.jsx` implemented.
 - [x] Frontend production build passes locally with `npm run build`.
-- [ ] `front-end/.env.local` updated with the final deployed `VITE_IMARA_CONTRACT_ADDRESS`.
-- [ ] End-to-end wallet smoke test completed on a deployed Westend contract.
+- [x] `front-end/.env.local` updated with the final deployed `VITE_IMARA_CONTRACT_ADDRESS`.
+- [x] End-to-end wallet smoke test completed on the deployed Polkadot Hub TestNet contract.
 
 ### Phase 1 — Smart Contract (0:00–1:00)
 
@@ -170,11 +170,11 @@ The existing Imara Platform already supports ideation, team formation, and proje
 - Location: `backend/script/DeployImara.s.sol`
 - Standard Foundry deploy script
 
-**Step 4: Deploy to Westend Asset Hub** *(15 min)*
+**Step 4: Deploy to Polkadot Hub TestNet** *(15 min)*
 ```bash
 cd backend
 forge create \
-  --rpc-url https://westend-asset-hub-eth-rpc.polkadot.io \
+  --rpc-url https://eth-rpc-testnet.polkadot.io/ \
   --private-key $PRIVATE_KEY \
   src/Imara.sol:Imara
 ```
@@ -252,15 +252,15 @@ forge create \
 |------|--------|--------|
 | Node.js + npm | Required | Already installed (existing frontend runs) |
 | Foundry (`forge`) | Required | Install: `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
-| MetaMask browser extension | Required | Add Westend Asset Hub EVM as custom network |
-| Private key with WND tokens | Required | Get WND from faucet (see below) |
+| MetaMask browser extension | Required | Add Polkadot Hub TestNet as a custom network |
+| Private key with PAS tokens | Required | Get PAS from the faucet (see below) |
 | Supabase account | Already set up | No changes needed |
 
 ### Accounts & Keys
 
 | Item | How to Get |
 |------|-----------|
-| WND testnet tokens | https://faucet.polkadot.io → select Westend Asset Hub → paste your EVM address |
+| PAS testnet tokens | https://faucet.polkadot.io → select Polkadot Hub TestNet / Paseo EVM → paste your EVM address |
 | Private key for deploy | Export from MetaMask. Store as `PRIVATE_KEY` env var. Never commit to git. |
 | Thirdweb Client ID | Already in `.env.local` as `VITE_THIRDWEB_CLIENT_ID` |
 | Supabase URL + Key | Already in `.env.local` |
@@ -275,8 +275,8 @@ VITE_SUPABASE_KEY=<existing>
 VITE_PROJECTID=<existing>
 VITE_PROJECTSECRET=<existing>
 
-# Add after deploying Imara.sol
-VITE_IMARA_CONTRACT_ADDRESS=<deployed_address>
+# Deployed Imara.sol contract
+VITE_IMARA_CONTRACT_ADDRESS=0x1314382ac047A386711DD062d1ac1aA8b83f2e0B
 ```
 
 ### New Files to Create
@@ -306,11 +306,11 @@ front-end/.env.local                    ← add VITE_IMARA_CONTRACT_ADDRESS
 ### Network Config (add to MetaMask)
 
 ```
-Network Name:  Westend Asset Hub
-RPC URL:       https://westend-asset-hub-eth-rpc.polkadot.io
-Chain ID:      420420421
-Symbol:        WND
-Explorer:      https://blockscout-westend-asset-hub.parity-chains.parity.io
+Network Name:  Polkadot Hub TestNet
+RPC URL:       https://eth-rpc-testnet.polkadot.io/
+Chain ID:      420420417
+Symbol:        PAS
+Explorer:      https://blockscout-testnet.polkadot.io/
 ```
 
 ---
@@ -319,9 +319,9 @@ Explorer:      https://blockscout-westend-asset-hub.parity-chains.parity.io
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| Westend RPC is down/slow | Medium | High | Have Sepolia as fallback RPC — same contract deploys there |
+| Polkadot Hub TestNet RPC is down/slow | Medium | High | Have Sepolia as fallback RPC — same contract deploys there |
 | MetaMask rejects custom network | Low | Medium | Use `wallet_addEthereumChain` programmatically in `imara.jsx` |
-| WND faucet dry | Medium | High | Use two MetaMask accounts, fund both from faucet early |
+| PAS faucet dry | Medium | High | Use two MetaMask accounts, fund both from faucet early |
 | `getAllTasks()` too expensive (large array) | Low | Low | Cap demo at <10 tasks; not a real issue for hackathon |
 | Reentrancy on ETH transfer | Low | Medium | MVP is safe (single transfer at end); add `ReentrancyGuard` pre-production |
 | ETH amount mismatch on join | Medium | Low | Frontend reads `stakeRequired` from contract and passes exact value |
@@ -330,12 +330,12 @@ Explorer:      https://blockscout-westend-asset-hub.parity-chains.parity.io
 
 ## 10. Demo Script (2 minutes)
 
-1. **Show contract** on Westend blockscout — "This is live on Polkadot Hub EVM"
-2. **Wallet A** opens `/tasks/create` — fills form, sets 0.01 WND stake, 1-hour deadline — submits
+1. **Show contract** on Polkadot Hub TestNet Blockscout — "This is live on Polkadot Hub EVM"
+2. **Wallet A** opens `/tasks/create` — fills form, sets 0.01 PAS stake, 1-hour deadline — submits
 3. Task appears in `/tasks` list
 4. **Switch to Wallet B** — click task — click "Stake & Join" — approve MetaMask transaction
 5. Wallet B types proof link — clicks "Submit Work"
 6. **Switch back to Wallet A** — see proof link — click "Approve"
-7. Show Wallet B's balance increased by 0.01 WND — **stake returned, commitment honored**
+7. Show Wallet B's balance increased by 0.01 PAS — **stake returned, commitment honored**
 8. Create second task — B joins — B submits — A clicks "Reject" — show stake slashed
 9. Close with: "Trustless accountability. Stake to commit. Fail and get slashed. Live on Polkadot."
