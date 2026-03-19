@@ -24,15 +24,19 @@ The existing Imara Platform already supports ideation, team formation, and proje
 
 ### 1.3 Success Criteria for Hackathon Demo
 
-> Current status on 2026-03-19: the contract is deployed at `0x1314382ac047A386711DD062d1ac1aA8b83f2e0B`, the frontend is wired to that address, and the wallet-to-wallet demo flow has been completed on Polkadot Hub TestNet.
+> Current status on 2026-03-19: the original MVP contract is deployed at `0x1314382ac047A386711DD062d1ac1aA8b83f2e0B`, the frontend is wired to that address, and the wallet-to-wallet demo flow has been completed on Polkadot Hub TestNet. The repository now also contains an OpenZeppelin-secured revision of `Imara.sol` using `Ownable`, `Pausable`, and `ReentrancyGuard`; that revision is tested locally and its ABI is synced to the frontend, but it still needs a fresh deployment and one repeat smoke test.
 
-- [x] `Imara.sol` deployed and verified on Polkadot Hub TestNet
+- [x] Original MVP `Imara.sol` deployed and verified on Polkadot Hub TestNet
 - [x] Task can be created via the frontend UI
 - [x] A second wallet can stake and join that task
 - [x] The participant submits a proof link
 - [x] The creator approves → ETH is returned to participant
 - [x] The creator rejects → ETH remains slashed in contract
 - [x] All state changes are visible in the frontend and on the block explorer
+- [x] OpenZeppelin-secured `Imara.sol` implemented and tested locally
+- [ ] OpenZeppelin-secured `Imara.sol` redeployed and verified on Polkadot Hub TestNet
+- [ ] Frontend switched to the new sponsor-track deployment address
+- [ ] Wallet-to-wallet smoke test rerun against the OpenZeppelin deployment
 
 ---
 
@@ -85,7 +89,7 @@ The existing Imara Platform already supports ideation, team formation, and proje
 | FR-04 | `verifyAndResolve` | Accepts taskId, approved (bool). Requires caller == task.creator. Requires not yet resolved. If approved: refund stakeRequired to participant, set status = Completed, increment reputation[participant]. If rejected: set status = Failed (stake stays in contract). Emits `TaskResolved`. |
 | FR-05 | `getAllTasks` | Returns all Task structs as an array. View function. Used by frontend to display task list. |
 | FR-06 | `reclaimExpiredTask` | Accepts taskId. Requires caller == creator. Requires status == Open. Requires deadline passed. Sets status = Failed. No ETH transferred (no participant staked). |
-| FR-07 | Events | `TaskCreated(taskId, creator, stakeRequired, deadline)`, `ParticipantJoined(taskId, participant, staked)`, `WorkSubmitted(taskId, participant, proofLink)`, `TaskResolved(taskId, participant, approved, payout)` |
+| FR-07 | Admin controls & events | Inherit OpenZeppelin `Ownable`, `Pausable`, and `ReentrancyGuard`. Expose owner-only `pause()`, `unpause()`, and `withdrawSlashed(recipient, amount)` that can only withdraw slashed funds beyond `pendingStakeTotal`. Emit `TaskCreated(taskId, creator, stakeRequired, deadline)`, `ParticipantJoined(taskId, participant, staked)`, `WorkSubmitted(taskId, participant, proofLink)`, `TaskResolved(taskId, participant, approved, payout)`, and `SlashedFundsWithdrawn(recipient, amount)`. |
 
 ### 4.2 Frontend Pages & Components
 
@@ -114,9 +118,9 @@ The existing Imara Platform already supports ideation, team formation, and proje
 | NFR-01 | Compatibility | Contract must compile with Solidity ^0.8.20, deploy on any EVM-compatible chain |
 | NFR-02 | Simplicity | No backend server. All task state read directly from contract via ethers.js. |
 | NFR-03 | Dev environment | `npm run dev` starts frontend with no additional setup beyond `.env.local` |
-| NFR-04 | Security (MVP) | No reentrancy risk: ETH sent to one address at end of function. Note: add `ReentrancyGuard` pre-production. |
+| NFR-04 | Security (MVP) | The sponsor-track contract uses OpenZeppelin `Ownable`, `Pausable`, and `ReentrancyGuard`. Slashed-fund withdrawal is owner-gated and limited to funds not counted in `pendingStakeTotal`. |
 | NFR-05 | UX | All on-chain actions show a loading/pending state. Errors surface as readable messages (not raw revert strings). |
-| NFR-06 | Demo-readiness | Contract verified on Polkadot Hub TestNet Blockscout. Full flow completable in under 2 minutes for live demo. |
+| NFR-06 | Demo-readiness | The currently deployed MVP contract is verified on Polkadot Hub TestNet Blockscout. The OpenZeppelin-secured redeploy should also be verified before final sponsor-track submission. |
 
 ---
 
@@ -140,16 +144,20 @@ The existing Imara Platform already supports ideation, team formation, and proje
 ### Status Update — 2026-03-19
 
 - [x] `backend/src/Imara.sol` implemented for task creation, join, submission, resolution, and expired-task reclaim.
-- [x] `backend/test/Imara.t.sol` added and `forge test` passes locally.
+- [x] OpenZeppelin `Ownable`, `Pausable`, and `ReentrancyGuard` added to `backend/src/Imara.sol` for sponsor-track hardening.
+- [x] `backend/test/Imara.t.sol` expanded to 31 behavior/security tests and `forge test --match-path test/Imara.t.sol` passes locally.
 - [x] `backend/script/DeployImara.s.sol` added.
-- [x] `Imara.sol` deployed to Polkadot Hub TestNet at `0x1314382ac047A386711DD062d1ac1aA8b83f2e0B` and verified on Blockscout.
-- [x] ABI exported to `front-end/src/utils/imaraAbi.json`.
+- [x] Original MVP `Imara.sol` deployed to Polkadot Hub TestNet at `0x1314382ac047A386711DD062d1ac1aA8b83f2e0B` and verified on Blockscout.
+- [x] ABI exported to `front-end/src/utils/imaraAbi.json` and resynced after the OpenZeppelin refactor.
 - [x] `front-end/src/utils/imara.jsx` added with read/write helpers and Polkadot Hub network setup.
 - [x] Routes added in `front-end/src/App.jsx` for `/tasks`, `/tasks/create`, and `/tasks/:id`.
 - [x] `TaskList.jsx`, `CreateTask.jsx`, and `TaskDetail.jsx` implemented.
 - [x] Frontend production build passes locally with `npm run build`.
-- [x] `front-end/.env.local` updated with the final deployed `VITE_IMARA_CONTRACT_ADDRESS`.
-- [x] End-to-end wallet smoke test completed on the deployed Polkadot Hub TestNet contract.
+- [x] `front-end/.env.local` currently points to the original deployed `VITE_IMARA_CONTRACT_ADDRESS`.
+- [x] End-to-end wallet smoke test completed on the deployed Polkadot Hub TestNet MVP contract.
+- [ ] OpenZeppelin-secured `Imara.sol` redeployed to Polkadot Hub TestNet and verified on Blockscout.
+- [ ] `front-end/.env.local` and Vercel env updated with the new sponsor-track address.
+- [ ] End-to-end wallet smoke test repeated on the OpenZeppelin-secured deployment.
 
 ### Phase 1 — Smart Contract (0:00–1:00)
 
@@ -275,8 +283,11 @@ VITE_SUPABASE_KEY=<existing>
 VITE_PROJECTID=<existing>
 VITE_PROJECTSECRET=<existing>
 
-# Deployed Imara.sol contract
+# Current live MVP deployment (pre-OpenZeppelin refactor)
 VITE_IMARA_CONTRACT_ADDRESS=0x1314382ac047A386711DD062d1ac1aA8b83f2e0B
+
+# Replace this after deploying the OpenZeppelin-secured sponsor-track version
+# VITE_IMARA_CONTRACT_ADDRESS=<new_sponsor_track_deployment>
 ```
 
 ### New Files to Create
@@ -323,7 +334,7 @@ Explorer:      https://blockscout-testnet.polkadot.io/
 | MetaMask rejects custom network | Low | Medium | Use `wallet_addEthereumChain` programmatically in `imara.jsx` |
 | PAS faucet dry | Medium | High | Use two MetaMask accounts, fund both from faucet early |
 | `getAllTasks()` too expensive (large array) | Low | Low | Cap demo at <10 tasks; not a real issue for hackathon |
-| Reentrancy on ETH transfer | Low | Medium | MVP is safe (single transfer at end); add `ReentrancyGuard` pre-production |
+| Reentrancy on ETH transfer | Low | Medium | Addressed in the repo with OpenZeppelin `ReentrancyGuard`; redeploy required to get that protection on-chain |
 | ETH amount mismatch on join | Medium | Low | Frontend reads `stakeRequired` from contract and passes exact value |
 
 ---

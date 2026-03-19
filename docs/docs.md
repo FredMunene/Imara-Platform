@@ -1,6 +1,6 @@
 # Imara Protocol — MVP Documentation
 
-> Generated: 2026-03-19 | Track 1: EVM Smart Contract | Target: Polkadot Hub EVM
+> Generated: 2026-03-19 | Track 1: EVM Smart Contract | Target: Polkadot Hub TestNet | Repo status: legacy MVP deployed, OpenZeppelin-secured redeploy pending
 
 ---
 
@@ -22,7 +22,7 @@ Coordination in decentralized teams fails because there is no consequence for un
 
 ### 1.2 Goal
 
-Ship an MVP of Imara Protocol that demonstrates **stake-to-commit, deliver-to-earn, fail-and-get-slashed** on Polkadot Hub EVM within a hackathon time window (~3 hours of contract + integration work).
+Ship an MVP of Imara Protocol that demonstrates **stake-to-commit, deliver-to-earn, fail-and-get-slashed** on Polkadot Hub EVM within a hackathon time window, then harden that contract with OpenZeppelin security primitives for sponsor-track submission.
 
 ### 1.3 Users
 
@@ -181,6 +181,21 @@ Block Explorer: https://blockscout-testnet.polkadot.io/
 
 ---
 
+### ADR-007: Use OpenZeppelin primitives for the sponsor-track contract
+
+**Status:** Accepted
+
+**Context:** The first working MVP used custom modifiers and direct ETH flow logic. For the OpenZeppelin sponsor track, OpenZeppelin needs to be a core part of the contract design, not an incidental dependency elsewhere in the repo.
+
+**Decision:** Refactor `Imara.sol` to inherit OpenZeppelin `Ownable`, `Pausable`, and `ReentrancyGuard`. Add owner-only `pause()`, `unpause()`, and `withdrawSlashed()` controls, track `pendingStakeTotal`, and keep the frontend ABI in sync with the new build.
+
+**Consequences:**
+- The sponsor-track contract has stronger access control and emergency controls.
+- Slashed ETH can be withdrawn safely without touching active participant stakes.
+- The new bytecode requires a fresh Polkadot Hub TestNet deployment and a new frontend contract address.
+
+---
+
 ## 3. Architecture Overview {#architecture}
 
 ### 3.1 High-Level Diagram
@@ -245,6 +260,8 @@ Block Explorer: https://blockscout-testnet.polkadot.io/
 ```
 
 ### 3.2 Smart Contract: `Imara.sol`
+
+The code block below shows the original MVP task flow. The current repo version in [backend/src/Imara.sol](/home/fred/Downloads/hackathons/polkadot/Imara-Platform/backend/src/Imara.sol) also inherits OpenZeppelin `Ownable`, `Pausable`, and `ReentrancyGuard`, tracks `pendingStakeTotal`, `totalSlashed`, and `totalWithdrawn`, and exposes `pause()`, `unpause()`, `availableSlashedFunds()`, and `withdrawSlashed()`.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -443,6 +460,10 @@ Creator sees proof link, clicks Approve or Reject
 | `front-end/src/components/CreateTask.jsx` | Task creation form |
 | `front-end/src/components/TaskList.jsx` | Browse all on-chain tasks |
 | `front-end/src/components/TaskDetail.jsx` | Task view + join + submit + verify |
+| `backend/@openzeppelin/contracts/access/Ownable.sol` | Vendored OpenZeppelin access control used by `Imara.sol` |
+| `backend/@openzeppelin/contracts/security/Pausable.sol` | Vendored OpenZeppelin pause control used by `Imara.sol` |
+| `backend/@openzeppelin/contracts/security/ReentrancyGuard.sol` | Vendored OpenZeppelin reentrancy protection used by `Imara.sol` |
+| `backend/@openzeppelin/contracts/utils/Context.sol` | OpenZeppelin dependency for the access/pause modules |
 
 ### 4.3 Edit (Minimal Changes)
 
@@ -483,9 +504,9 @@ Creator sees proof link, clicks Approve or Reject
 |----------|-----|
 | Foundry book | https://book.getfoundry.sh |
 | Foundry deploy to custom RPC | `forge create --rpc-url <RPC> --private-key <PK> src/Imara.sol:Imara` |
-| OpenZeppelin contracts v5 | Already installed in backend (`@openzeppelin/contracts ^5.2.0`) |
+| OpenZeppelin access/security modules | Vendored in `backend/@openzeppelin/contracts/` and used directly by `Imara.sol` |
 | Solidity 0.8 docs | https://docs.soliditylang.org/en/v0.8.20 |
-| ETH transfer patterns | Use `.transfer()` for MVP; consider ReentrancyGuard for production |
+| ETH transfer patterns | Current contract uses OpenZeppelin `ReentrancyGuard` and low-level `.call` for payouts/withdrawals |
 
 ### 5.3 Frontend / ethers.js
 
@@ -510,7 +531,8 @@ Creator sees proof link, clicks Approve or Reject
 |----------|---------|---------|
 | TokenFactory.sol | `0x7E81E4697863cAB4FE4C0d820baCbc9e9843e3dD` | Current EVM chain |
 | Staking.sol | `0x65225a4E25977A00E766dF66269774e5f24b2d55` | Current EVM chain |
-| Imara.sol | `0x1314382ac047A386711DD062d1ac1aA8b83f2e0B` | Polkadot Hub TestNet |
+| Imara.sol (legacy MVP deployment) | `0x1314382ac047A386711DD062d1ac1aA8b83f2e0B` | Polkadot Hub TestNet |
+| Imara.sol (OpenZeppelin-secured sponsor-track build) | Pending redeploy | Polkadot Hub TestNet |
 
 ---
 
@@ -543,7 +565,9 @@ Creator sees proof link, clicks Approve or Reject
 ### 6.1 Progress Checklist — 2026-03-19
 
 - [x] Added `backend/src/Imara.sol`.
+- [x] Added OpenZeppelin `Ownable`, `Pausable`, and `ReentrancyGuard` to `backend/src/Imara.sol`.
 - [x] Added `backend/test/Imara.t.sol` and verified it with `forge test`.
+- [x] Expanded the Foundry suite to cover the OpenZeppelin admin/security logic.
 - [x] Added `backend/script/DeployImara.s.sol`.
 - [x] Generated `front-end/src/utils/imaraAbi.json` from the Foundry build output.
 - [x] Added `front-end/src/utils/imara.jsx` with contract helpers and `wallet_addEthereumChain` support.
@@ -552,8 +576,11 @@ Creator sees proof link, clicks Approve or Reject
 - [x] Added `front-end/src/components/TaskDetail.jsx`.
 - [x] Wired `/tasks`, `/tasks/create`, and `/tasks/:id` in `front-end/src/App.jsx`.
 - [x] Verified the frontend compiles with `npm run build`.
-- [x] Deploy `Imara.sol` to Polkadot Hub TestNet and set the final `VITE_IMARA_CONTRACT_ADDRESS`.
-- [x] Run the full wallet-to-wallet demo flow on the deployed contract.
+- [x] Deploy the original MVP `Imara.sol` to Polkadot Hub TestNet and set `VITE_IMARA_CONTRACT_ADDRESS`.
+- [x] Run the full wallet-to-wallet demo flow on the deployed MVP contract.
+- [ ] Deploy the OpenZeppelin-secured `Imara.sol` to Polkadot Hub TestNet.
+- [ ] Rotate `VITE_IMARA_CONTRACT_ADDRESS` to the new deployment.
+- [ ] Repeat the wallet-to-wallet demo flow against the OpenZeppelin deployment.
 
 ---
 
@@ -564,6 +591,6 @@ Creator sees proof link, clicks Approve or Reject
 | Polkadot Hub TestNet chain not accessible / RPC down | Have Sepolia fallback: same contract, different RPC |
 | MetaMask not detecting custom chain | Pre-add network via `wallet_addEthereumChain` in `utils/imara.jsx` |
 | `getAllTasks()` gas limit for large arrays | Cap at 100 tasks for demo; use event indexing in production |
-| Slash funds stuck in contract | Add `withdrawSlashed()` owned by deployer for demo cleanup |
+| Slash funds stuck in contract | Addressed in the repo with `withdrawSlashed()`; redeploy required for the live contract to gain it |
 | Single participant per task feels limited | Frame as "bounty claim" model — clear and intuitive for demo |
-| ReentrancyGuard not added | Low risk for MVP (no complex callback logic); note in code comment |
+| Reentrancy on payout/withdrawal flows | Addressed in the repo with OpenZeppelin `ReentrancyGuard`; redeploy required for the live contract to gain it |
